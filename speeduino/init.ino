@@ -16,7 +16,7 @@
 #include "decoders.h"
 #include "corrections.h"
 #include "idle.h"
-#include "table.h"
+#include "table2d.h"
 #include "acc_mc33810.h"
 #include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
 #include EEPROM_LIB_H
@@ -52,25 +52,6 @@ void initialiseAll()
 
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, LOW);
-    table3D_setSize(&fuelTable, 16);
-    table3D_setSize(&fuelTable2, 16);
-    table3D_setSize(&ignitionTable, 16);
-    table3D_setSize(&ignitionTable2, 16);
-    table3D_setSize(&afrTable, 16);
-    table3D_setSize(&stagingTable, 8);
-    table3D_setSize(&boostTable, 8);
-    table3D_setSize(&vvtTable, 8);
-    table3D_setSize(&vvt2Table, 8);
-    table3D_setSize(&wmiTable, 8);
-    table3D_setSize(&trim1Table, 6);
-    table3D_setSize(&trim2Table, 6);
-    table3D_setSize(&trim3Table, 6);
-    table3D_setSize(&trim4Table, 6);
-    table3D_setSize(&trim5Table, 6);
-    table3D_setSize(&trim6Table, 6);
-    table3D_setSize(&trim7Table, 6);
-    table3D_setSize(&trim8Table, 6);
-    table3D_setSize(&dwellTable, 4);
 
     #if defined(CORE_STM32)
     configPage9.intcan_available = 1;   // device has internal canbus
@@ -320,35 +301,6 @@ void initialiseAll()
     initialiseADC();
     initialiseProgrammableIO();
 
-    //Lookup the current MAP reading for barometric pressure
-    instanteneousMAPReading();
-    //barometric reading can be taken from either an external sensor if enabled, or simply by using the initial MAP value
-    if ( configPage6.useExtBaro != 0 )
-    {
-      readBaro();
-      storeLastBaro(currentStatus.baro);
-    }
-    else
-    {
-      /*
-      * The highest sea-level pressure on Earth occurs in Siberia, where the Siberian High often attains a sea-level pressure above 105 kPa;
-      * with record highs close to 108.5 kPa.
-      * The lowest measurable sea-level pressure is found at the centers of tropical cyclones and tornadoes, with a record low of 87 kPa;
-      */
-      if ((currentStatus.MAP >= BARO_MIN) && (currentStatus.MAP <= BARO_MAX)) //Check if engine isn't running
-      {
-        currentStatus.baro = currentStatus.MAP;
-        storeLastBaro(currentStatus.baro);
-      }
-      else
-      {
-        //Attempt to use the last known good baro reading from EEPROM
-        if ((readLastBaro() >= BARO_MIN) && (readLastBaro() <= BARO_MAX)) //Make sure it's not invalid (Possible on first run etc)
-        { currentStatus.baro = readLastBaro(); } //last baro correction
-        else { currentStatus.baro = 100; } //Final fall back position.
-      }
-    }
-
     //Check whether the flex sensor is enabled and if so, attach an interrupt for it
     if(configPage2.flexEnabled > 0)
     {
@@ -412,6 +364,11 @@ void initialiseAll()
     timer5_overflow_count = 0;
     toothHistoryIndex = 0;
     toothHistorySerialIndex = 0;
+    toothLastToothTime = 0;
+
+    //Lookup the current MAP reading for barometric pressure
+    instanteneousMAPReading();
+    readBaro();
     
     noInterrupts();
     initialiseTriggers();
@@ -1201,7 +1158,7 @@ void initialiseAll()
     digitalWrite(LED_BUILTIN, HIGH);
 }
 /** Set board / microcontroller specfic pin mappings / assignments.
- * The boardID is switch-case compared against raw boardID integers (not enum or #define:d label, and probably no need for that either)
+ * The boardID is switch-case compared against raw boardID integers (not enum or defined label, and probably no need for that either)
  * which are originated from tuning SW (e.g. TS) set values and are avilable in reference/speeduino.ini (See pinLayout, note also that
  * numbering is not contiguous here).
  */
@@ -2134,7 +2091,7 @@ void setPinMapping(byte boardID)
       pinBat = A14; //Battery reference voltage pin
       pinSpareTemp1 = A17; //spare Analog input 1
       pinLaunch = A15; //Can be overwritten below
-      pinTachOut = 7; //Tacho output pin
+      pinTachOut = 5; //Tacho output pin
       pinIdle1 = 27; //Single wire idle control
       pinIdle2 = 29; //2 wire idle control. Shared with Spare 1 output
       pinFuelPump = 8; //Fuel pump output
