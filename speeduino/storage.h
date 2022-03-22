@@ -98,6 +98,9 @@
  * | 3199       |2           | HOLE ??                              |                                    |
  * | 3201       |128         | Page 15 settings                     | @ref EEPROM_CONFIG15_START         |
  * | 3329       |357         | EMPTY                                |                                    |
+ * | 3674       |4           | CLT Calibration CRC32                |                                    |
+ * | 3678       |4           | IAT Calibration CRC32                |                                    |
+ * | 3682       |4           | O2 Calibration CRC32                 |                                    |
  * | 3686       |56          | Page CRC32 sums (4x14)               | Last first, 14 -> 1                |
  * | 3742       |1           | Baro value saved at init             | @ref EEPROM_LAST_BARO              |
  * | 3743       |64          | O2 Calibration Bins                  | @ref EEPROM_CALIBRATION_O2_BINS    |
