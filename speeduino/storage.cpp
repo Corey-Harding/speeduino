@@ -11,12 +11,14 @@ A full copy of the license may be found in the projects root directory
 #include EEPROM_LIB_H //This is defined in the board .h files
 #include "storage.h"
 #include "pages.h"
+#include "table3d_axis_io.h"
 
 //The maximum number of write operations that will be performed in one go. If we try to write to the EEPROM too fast (Each write takes ~3ms) then the rest of the system can hang)
 #if defined(CORE_STM32) || defined(CORE_TEENSY) & !defined(USE_SPI_EEPROM)
 #define EEPROM_MAX_WRITE_BLOCK 64
 #else
-#define EEPROM_MAX_WRITE_BLOCK 30
+#define EEPROM_MAX_WRITE_BLOCK 24
+//#define EEPROM_MAX_WRITE_BLOCK 8
 #endif
 
 #define EEPROM_DATA_VERSION   0
@@ -33,6 +35,7 @@ A full copy of the license may be found in the projects root directory
 
 static bool eepromWritesPending = false;
 static bool forceBurn = false;
+uint32_t deferEEPROMWritesUntil = 0;
 
 bool isEepromWritePending()
 {
@@ -82,7 +85,11 @@ struct write_location {
 
   bool can_write() const
   {
-    return (counter<=EEPROM_MAX_WRITE_BLOCK);
+    bool canWrite = false;
+    if(currentStatus.RPM > 0) { canWrite = (counter <= EEPROM_MAX_WRITE_BLOCK); }
+    else { canWrite = (counter <= (EEPROM_MAX_WRITE_BLOCK * 8)); } //Write to EEPROM more aggresively if the engine is not running
+
+    return canWrite;
   }
 };
 
@@ -114,9 +121,10 @@ static inline write_location write(table_value_iterator it, write_location locat
 
 static inline write_location write(table_axis_iterator it, write_location location)
 {
+  const int16_byte *pConverter = table3d_axis_io::get_converter(it.domain());
   while ((location.can_write() || forceBurn) && !it.at_end())
   {
-    location.update((byte)*it);
+    location.update(pConverter->to_byte(*it));
     ++location;
     ++it;
   }
@@ -140,6 +148,8 @@ and writes them to EEPROM as per the layout defined in storage.h.
 void writeConfig(uint8_t pageNum)
 {
   write_location result = { 0, 0 };
+
+  //if(micros() < deferEEPROMWritesUntil) { result.counter = (EEPROM_MAX_WRITE_BLOCK + 1); } //If we are deferring writes then we don't want to write anything. This will force can_write() to return false and the write will be skipped.
 
   switch(pageNum)
   {
@@ -280,6 +290,8 @@ void writeConfig(uint8_t pageNum)
   }
 
   eepromWritesPending = !result.can_write();
+  if(eepromWritesPending == true) { BIT_SET(currentStatus.status4, BIT_STATUS4_BURNPENDING); }
+  else { BIT_CLEAR(currentStatus.status4, BIT_STATUS4_BURNPENDING); }
 }
 
 /** Reset all configPage* structs (2,4,6,9,10,13) and write them full of null-bytes.
@@ -340,9 +352,10 @@ static inline eeprom_address_t load(table_value_iterator it, eeprom_address_t ad
 
 static inline eeprom_address_t load(table_axis_iterator it, eeprom_address_t address)
 {
+  const int16_byte *pConverter = table3d_axis_io::get_converter(it.domain());
   while (!it.at_end())
   {
-    *it = EEPROM.read(address);
+    *it = pConverter->from_byte(EEPROM.read(address));
     ++address;
     ++it;
   }

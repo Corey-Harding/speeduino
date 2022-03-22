@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "speeduino.h"
 #include "scheduler.h"
 #include "comms.h"
-#include "newComms.h"
+#include "comms_legacy.h"
 #include "cancomms.h"
 #include "maths.h"
 #include "corrections.h"
@@ -119,7 +119,11 @@ void loop()
       //Perform the same check for the tooth and composite logs
       if( toothLogSendInProgress == true)
       {
-        if(Serial.availableForWrite() > 16) { sendToothLog(inProgressOffset); }
+        if(Serial.availableForWrite() > 16) 
+        { 
+          if(legacySerial == true) { sendToothLog_legacy(inProgressOffset); }
+          else { sendToothLog(inProgressOffset); }
+        }
       }
       if( compositeLogSendInProgress == true)
       {
@@ -137,7 +141,7 @@ void loop()
       else if(cmdPending == true)
       {
         //This is a special case just for the tooth and composite loggers
-        if (currentCommand == 'T') { command(); }
+        if (currentCommand == 'T') { legacySerialCommand(); }
       }
 
       //Check for any CAN comms requiring action 
@@ -271,6 +275,8 @@ void loop()
       //And check whether the tooth log buffer is ready
       if(toothHistoryIndex > TOOTH_LOG_SIZE) { BIT_SET(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY); }
 
+      
+
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ)) //10 hertz
     {
@@ -278,6 +284,8 @@ void loop()
       //updateFullStatus();
       checkProgrammableIO();
 
+      //if( (isEepromWritePending() == true) && (serialReceivePending == false) && (micros() > deferEEPROMWritesUntil)) { writeAllConfig(); } //Used for slower EEPROM writes (Currently this runs in the 30Hz block)
+      
       currentStatus.vss = getSpeed();
       currentStatus.gear = getGear();
 
@@ -294,18 +302,20 @@ void loop()
       vvtControl();
       //Water methanol injection
       wmiControl();
-      //FOR TEST PURPOSES ONLY!!!
-      //if(vvt2_pwm_value < vvt_pwm_max_count) { vvt2_pwm_value++; }
-      //else { vvt2_pwm_value = 1; }
       #if TPS_READ_FREQUENCY == 30
         readTPS();
       #endif
+      readO2();
+      readO2_2();
 
       if(isEepromWritePending() == true) { writeAllConfig(); } //Check for any outstanding EEPROM writes.
 
       #ifdef SD_LOGGING
         if(configPage13.onboard_log_file_rate == LOGGER_RATE_30HZ) { writeSDLogEntry(); }
       #endif
+
+      //Check for any outstanding EEPROM writes.
+      if( (isEepromWritePending() == true) && (serialReceivePending == false) && (micros() > deferEEPROMWritesUntil)) { writeAllConfig(); } 
     }
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ))
     {
@@ -313,8 +323,6 @@ void loop()
       //The IAT and CLT readings can be done less frequently (4 times per second)
       readCLT();
       readIAT();
-      readO2();
-      readO2_2();
       readBat();
       nitrousControl();
       idleControl(); //Perform any idle related actions. Even at higher frequencies, running 4x per second is sufficient.
