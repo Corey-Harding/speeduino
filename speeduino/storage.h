@@ -180,6 +180,10 @@ extern uint32_t deferEEPROMWritesUntil;
 #define EEPROM_CONFIG15_START   3201
 #define EEPROM_CONFIG15_END     3329
 
+#define EEPROM_CALIBRATION_CLT_CRC  3674
+#define EEPROM_CALIBRATION_IAT_CRC  3678
+#define EEPROM_CALIBRATION_O2_CRC   3682
+
 //These were the values used previously when all calibration tables were 512 long. They need to be retained so the update process (202005 -> 202008) can work
 #define EEPROM_CALIBRATION_O2_OLD   2559
 #define EEPROM_CALIBRATION_IAT_OLD  3071
