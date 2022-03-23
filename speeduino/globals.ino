@@ -229,6 +229,9 @@ byte pinBoost;
 byte pinVVT_1;     ///< vvt (variable valve timing) output 1
 byte pinVVT_2;     ///< vvt (variable valve timing) output 2
 byte pinFan;       ///< Cooling fan output (on/off? See: auxiliaries.ino)
+byte pinAirConComp;     // Air conditioning compressor output (See: auxiliaries.ino)
+byte pinAirConFan;    // Stand-alone air conditioning fan output (See: auxiliaries.ino)
+byte pinAirConRequest;  // Air conditioning request input (See: auxiliaries.ino)
 byte pinStepperDir; //Direction pin for the stepper motor driver
 byte pinStepperStep; //Step pin for the stepper motor driver
 byte pinStepperEnable; //Turning the DRV8825 driver on/off
@@ -256,6 +259,7 @@ struct config6 configPage6;
 struct config9 configPage9;
 struct config10 configPage10;
 struct config13 configPage13;
+struct config15 configPage15;
 
 //byte cltCalibrationTable[CALIBRATION_TABLE_SIZE]; /**< An array containing the coolant sensor calibration values */
 //byte iatCalibrationTable[CALIBRATION_TABLE_SIZE]; /**< An array containing the inlet air temperature sensor calibration values */
