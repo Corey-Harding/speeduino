@@ -4,7 +4,7 @@
 /** @file storage.h
  * @brief Functions for reading and writing user settings to/from EEPROM
  *
- * Current layout of EEPROM is as follows (Version 18):
+ * Current layout of EEPROM is as follows (Version 21):
  *
  * |Offset (Dec)|Size (Bytes)| Description                          | Reference                          |
  * | ---------: | :--------: | :----------------------------------: | :--------------------------------- |
