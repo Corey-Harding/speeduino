@@ -16,7 +16,7 @@
 
 void doUpdates()
 {
-  #define CURRENT_DATA_VERSION    20
+  #define CURRENT_DATA_VERSION    21
   //Only the latest updat for small flash devices must be retained
    #ifndef SMALL_FLASH_MODE
 
@@ -591,6 +591,15 @@ void doUpdates()
     
     writeAllConfig();
     storeEEPROMVersion(20);
+  }
+  
+  if(readEEPROMVersion() == 20)
+  {
+    //Added configPage15 AC Control
+    configPage15.airConEnable = false;
+    
+    writeAllConfig();
+    storeEEPROMVersion(21);
   }
 
   //Final check is always for 255 and 0 (Brand new arduino)
